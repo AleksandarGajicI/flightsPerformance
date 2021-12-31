@@ -1,0 +1,79 @@
+CREATE TABLE flight (
+  src TEXT
+, dest TEXT
+, stt TIMESTAMP
+, endt TIMESTAMP
+, price DECIMAL);
+
+INSERT INTO flight VALUES 
+('SIN', 'DAC', '2016-12-31 22:45:00', '2017-01-01 01:45:00', 300),
+('DAC', 'SIN', '2017-01-01 16:30:00', '2017-01-01 21:30:00', 400),
+('SIN', 'DAC', '2017-01-01 22:45:00', '2017-01-02 01:45:00', 500),
+('DAC', 'DEL', '2017-01-01 10:00:00', '2017-01-01 11:30:00', 320),
+('DEL', 'DAC', '2017-01-01 12:30:00', '2017-01-01 14:00:00', 570),
+('DAC', 'CCU', '2017-01-01 10:30:00', '2017-01-01 11:15:00', 410),
+('CCU', 'DAC', '2017-01-01 11:45:00', '2017-01-01 12:30:00', 480),
+('SIN', 'DEL', '2017-01-01 11:00:00', '2017-01-01 15:00:00', 820),
+('DEL', 'SIN', '2017-01-01 16:30:00', '2017-01-01 20:30:00', 360),
+('CCU', 'DEL', '2017-01-01 12:00:00', '2017-01-01 12:45:00', 740),
+('DEL', 'CCU', '2017-01-01 13:15:00', '2017-01-01 14:00:00', 930);
+
+create type FlightPath as (src text, dest text, concatPath text, price int, startTime timestamp, endTime timestamp);
+
+create or replace function isFlightAfter(firstEndT timestamp, secondStartT timestamp) returns boolean
+as $$
+    select (secondStartT > firstEndT + interval '15 min');
+$$ language sql;
+
+create or replace function getPathsFor(startNode text, endNode text, startTMP timestamp, endTMP timestamp) returns setof FlightPath
+as $$
+	WITH RECURSIVE search_path(paths, price, startt, endt) AS
+    (
+        select
+            array[src, dest],
+            price,
+      		stt,
+      		endt
+        from
+            flight
+        where src = startNode
+        and stt > startTMP
+        and endt < endTMP
+
+        union all
+      
+        select
+            sp.paths || f.dest,
+            sp.price + f.price,
+      		sp.startt,
+      		f.endt
+            
+        from
+            flight f,
+            search_path sp
+        where
+        f.endt < endTMP
+        and f.stt > sp.endt + interval '15 min'
+        and sp.paths[array_length(paths, 1)] = f.src
+        and not endNode = any(sp.paths)
+        and not f.dest = any(sp.paths)
+    ) 
+    select startNode as src, endNode as dest, paths as concatPath, price, startt as startTime, endt as endTime 
+    from search_path
+    where paths[array_length(paths, 1)] = endNode
+$$ language sql;
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+s
