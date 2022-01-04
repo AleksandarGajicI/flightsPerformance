@@ -1,26 +1,32 @@
+import dotenv from 'dotenv';
 import { Pool, QueryResult, PoolClient } from 'pg';
 
-
-export type QueryCallback<T> = (err: Error, res: QueryResult<T>) => void;
+dotenv.config();
 
 let client: PoolClient;
+
+export type QueryCallback<T> = (err: Error, res: QueryResult<T>) => void;
 
 export const connectToDb = async () => {
     if (!client) client = await (new Pool({
         port: 5432,
-        user: 'postgres',
+        user: process.env.POSTGRESQL_USER,
         host: 'localhost',
         database: 'flights',
-        password: 'PUT PASSWORD HERE',
+        password: process.env.POSTGRESQL_PASSWORD,
     })).connect();
 
-    return getClient();
+    return getWrapperClient();
 }
 
-export const getClient = () => {
+export const getWrapperClient = () => {
     if (!client) throw new Error('client not connected');
 
     return {
-        query: <T = any>(text: string, params = [], callback: QueryCallback<T>) => client.query(text, params, callback),
+        query: <T = any>(text: string, params: string[] = []) => client.query(text, params) as Promise<QueryResult<T>>,
     }
 }
+
+export const getNativeClient = () => client;
+
+export * from './loadFlights';

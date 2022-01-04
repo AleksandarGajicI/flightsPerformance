@@ -11,3 +11,5 @@ export const retry = (fn: () => Promise<any>, times: number): Promise<any> => fn
         throw new Error('Tried maximum amount of times');
     }
 });
+
+export const isTableEmpty = (rows: ({count: number})[]) => rows[0].count < 1;
