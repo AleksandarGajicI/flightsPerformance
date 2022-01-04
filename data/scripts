@@ -1,8 +1,0 @@
-CREATE TABLE flight (
-  id INT PRIMARY KEY
-, src TEXT
-, dest TEXT
-, stt TIMESTAMP
-, endt TIMESTAMP
-, price DECIMAL
-);
