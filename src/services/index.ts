@@ -85,20 +85,10 @@ export const bfs = ({ src, dest, startTime, endTime }: FindFlightParams) => (gra
 
         for (const edge of curr.edges) {
             const { stt, endt, dest} = edge;
-            
-            if (flightIsTooLate(stt, endTime)) {
-                console.log('flight is too late');
-                break;
-            };
 
-            if (flightIsTooEarly(stt, startTime) || 
-                (notFirst(curr.name, src) && flightIsAfter(prevEnd, stt)) ||
+            if (!flightIsAfter(prevEnd, stt) ||
                 edgeHasBeenVisited(parentKey, edge)
-
-            ) {
-                console.log('flight is too early or after or edge has been visited');
-                continue;
-            }
+            ) continue;
             
             queue.push(dest);
             prevEndDate.push(endt);
@@ -106,12 +96,12 @@ export const bfs = ({ src, dest, startTime, endTime }: FindFlightParams) => (gra
             routeKeys.push(getRouteKey(parentRouteKey, edge));
             addRoute(parentRouteKey, routes, edge);
         }
-        console.log('checked')
+        
 
         removeRoute(parentRouteKey, routes);
     }
 
-    return Object.values(routes).filter(route => route.price > 0);
+    return Object.values(routes).filter(route => route.stops[route.stops.length - 1] === dest);
 }
 
 const getEdgeFromFlight = ({ dest, price, stt, endt }: Flight): Edge => ({
@@ -132,7 +122,7 @@ const addRoute = (parentKey: string, routes: Dictionary<Route>, e: Edge) => {
 }
 
 const notFirst = (curr: string, src: string) => curr !== src;
-const tooManyStops = (parentKey: string) => parentKey.split('.').length > 6;
+const tooManyStops = (parentKey: string) => parentKey.split('.').length > 7;
 const getKeyForEdge = (parentKey: string, e: Edge) => `${parentKey}-${e.dest}`;
 const removeRoute = (key: string, routes: Dictionary<Route>) => delete routes[key];
 const edgeHasBeenVisited = (parentKey: string, e: Edge) => parentKey.includes(e.dest);
