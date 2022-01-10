@@ -15,9 +15,63 @@ export const setUpFlightsGraphAsync = async (flights: Flight[]) => {
 }
 
 //edges are sorted by date so we can shortcut if dates are out of range, no need to go through all edges
-
 export const bfsAsync = ({ src, dest, startTime, endTime }: FindFlightParams) => async (graph: Graph<Edge>) => {
-    console.log('from promise', Object.keys(graph).length);
+    const startKey = `${src}-${startTime}`;
+    const routes: Dictionary<Route> = {
+        [startKey]: { 
+            price: 0, 
+            endt: endTime, 
+            src, 
+            stt: startTime, 
+            dest, 
+            stops: []
+        }
+    };
+    const queue = [{
+        graphNode: src,
+        parentKey: src,
+        prevEnd: startTime,
+        parentRouteKey: startKey
+    }];
+    
+    while(queue.length > 0) {
+        const { graphNode, parentRouteKey, parentKey, prevEnd } = queue.shift()!;
+        const curr = graph[graphNode];
+
+        // no curr means no flight in time frame -> dead end
+        if (!curr || await tooManyStops(parentKey)) {
+            removeRoute(parentRouteKey, routes);
+            continue;
+        }
+        
+        //stop searching if you reached destination and keep it in routes
+        if(curr.name === dest) continue;
+
+        for (const edge of curr.edges) {
+            const { stt, endt, dest} = edge;
+
+            if (!(await flightIsAfter(prevEnd, stt)) ||
+                (await edgeHasBeenVisited(parentKey, edge))
+            ) continue;
+            
+            queue.push({
+                prevEnd: endt,
+                graphNode: dest,
+                parentKey: await getKeyForEdge(parentKey, edge),
+                parentRouteKey: await getRouteKey(parentRouteKey, edge),
+            });
+            addRoute(parentRouteKey, routes, edge);
+        }
+        
+
+        removeRoute(parentRouteKey, routes);
+    }
+
+    return Object.values(routes).filter(route => route.stops[route.stops.length - 1] === dest);
+}
+
+
+export const bfsMultipleQueuesAsync = ({ src, dest, startTime, endTime }: FindFlightParams) => async (graph: Graph<Edge>) => {
     const startKey = `${src}-${startTime}`;
     const queue = [src];
     const parentKeys = [src];
@@ -42,7 +96,7 @@ export const bfsAsync = ({ src, dest, startTime, endTime }: FindFlightParams) =>
 
         // no curr means no flight in time frame -> dead end
         if (!curr || await tooManyStops(parentKey)) {
-            removeRoute(parentKey, routes);
+            removeRoute(parentRouteKey, routes);
             continue;
         }
         

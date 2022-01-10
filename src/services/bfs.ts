@@ -19,6 +19,62 @@ export const setUpFlightsGraph = (flights: Flight[]) => {
 export const bfs = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
     console.log(Object.keys(graph).length);
     const startKey = `${src}-${startTime}`;
+    const routes: Dictionary<Route> = {
+        [startKey]: { 
+            price: 0, 
+            endt: endTime, 
+            src, 
+            stt: startTime, 
+            dest, 
+            stops: []
+        }
+    };
+    const queue2 = [{
+        graphNode: src,
+        parentKey: src,
+        prevEnd: startTime,
+        parentRouteKey: startKey
+    }];
+    
+    while(queue2.length > 0) {
+
+        const { graphNode, parentRouteKey, parentKey, prevEnd } = queue2.shift()!;
+        const curr = graph[graphNode];
+
+        // no curr means no flight in time frame -> dead end
+        if (!curr) {
+            removeRoute(parentRouteKey, routes);
+            continue;
+        }
+        
+        //stop searching if you reached destination and keep it in routes
+        if(curr.name === dest) continue;
+
+        for (const edge of curr.edges) {
+            const { stt, endt, dest} = edge;
+
+            if (!flightIsAfter(prevEnd, stt) ||
+                edgeHasBeenVisited(parentKey, edge)
+            ) continue;
+            
+            queue2.push({
+                prevEnd: endt,
+                graphNode: dest,
+                parentKey: getKeyForEdge(parentKey, edge),
+                parentRouteKey: getRouteKey(parentRouteKey, edge),
+            });
+            addRoute(parentRouteKey, routes, edge);
+        }
+
+        removeRoute(parentRouteKey, routes);
+    }
+
+    return Object.values(routes);
+}
+
+export const bfsMultipleQueues = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+    console.log(Object.keys(graph).length);
+    const startKey = `${src}-${startTime}`;
     const queue = [src];
     const parentKeys = [src];
     const routeKeys = [startKey];
@@ -41,8 +97,8 @@ export const bfs = ({ src, dest, startTime, endTime }: FindFlightParams) => (gra
         const parentRouteKey = routeKeys.shift()!;
 
         // no curr means no flight in time frame -> dead end
-        if (!curr || tooManyStops(parentKey)) {
-            removeRoute(parentKey, routes);
+        if (!curr) {
+            removeRoute(parentRouteKey, routes);
             continue;
         }
         
@@ -62,12 +118,11 @@ export const bfs = ({ src, dest, startTime, endTime }: FindFlightParams) => (gra
             routeKeys.push(getRouteKey(parentRouteKey, edge));
             addRoute(parentRouteKey, routes, edge);
         }
-        
 
         removeRoute(parentRouteKey, routes);
     }
 
-    return Object.values(routes).filter(route => route.stops[route.stops.length - 1] === dest);
+    return Object.values(routes);
 }
 
 const getEdgeFromFlight = ({ dest, price, stt, endt }: Flight): Edge => ({
@@ -88,7 +143,7 @@ const addRoute = (parentKey: string, routes: Dictionary<Route>, e: Edge) => {
 }
 
 const notFirst = (curr: string, src: string) => curr !== src;
-const tooManyStops = (parentKey: string) => parentKey.split('.').length > 7;
+const tooManyStops = (parentKey: string) => parentKey.split('.').length > 6;
 const getKeyForEdge = (parentKey: string, e: Edge) => `${parentKey}-${e.dest}`;
 const removeRoute = (key: string, routes: Dictionary<Route>) => delete routes[key];
 const edgeHasBeenVisited = (parentKey: string, e: Edge) => parentKey.includes(e.dest);
