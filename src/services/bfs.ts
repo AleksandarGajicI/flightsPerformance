@@ -1,5 +1,7 @@
 import { Flight } from "../domain";
-import { Dictionary, Edge, FindFlightParams, Graph, Node, Route } from "./types";
+import { Dictionary } from "../util";
+import { Edge, FindFlightParams, Graph, Route } from "./types";
+import { addEdge, addRoute, edgeHasBeenVisited, flightIsAfter, getEdgeFromFlight, getKeyForEdge, getRouteKey, removeRoute } from "./shared";
 
 export const setUpFlightsGraph = (flights: Flight[]) => {
     const nodes: Graph<Edge> = {};
@@ -124,31 +126,3 @@ export const bfsMultipleQueues = ({ src, dest, startTime, endTime }: FindFlightP
 
     return Object.values(routes);
 }
-
-const getEdgeFromFlight = ({ dest, price, stt, endt }: Flight): Edge => ({
-    stt,
-    dest,
-    endt,
-    price,
-});
-
-const addRoute = (parentKey: string, routes: Dictionary<Route>, e: Edge) => {
-    const prevRoute = routes[parentKey];
-    routes[getRouteKey(parentKey, e)] = {
-        ...prevRoute,
-        endt: e.endt,
-        price: prevRoute.price + e.price,
-        stops: [...prevRoute.stops, e.dest],
-    }
-}
-
-const notFirst = (curr: string, src: string) => curr !== src;
-const tooManyStops = (parentKey: string) => parentKey.split('.').length > 6;
-const getKeyForEdge = (parentKey: string, e: Edge) => `${parentKey}-${e.dest}`;
-const removeRoute = (key: string, routes: Dictionary<Route>) => delete routes[key];
-const edgeHasBeenVisited = (parentKey: string, e: Edge) => parentKey.includes(e.dest);
-const flightIsTooLate = (flightStart: Date, wantedEnd: Date) => flightStart > wantedEnd;
-const flightIsTooEarly = (flightStart: Date, wantedStart: Date) => flightStart < wantedStart;
-const getRouteKey = (parentRouteKey: string, e: Edge) => `${parentRouteKey}.${e.dest}-${e.stt}`;
-const addEdge = (node: Node<Edge>, flight: Flight) => node.edges.push(getEdgeFromFlight(flight));
-const flightIsAfter = (firstEnd: Date, secondStart: Date) => secondStart > new Date(firstEnd.getTime() + 15*60000);

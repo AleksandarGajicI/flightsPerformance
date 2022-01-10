@@ -1,5 +1,6 @@
 import { Flight } from "../domain";
-import { Dictionary, Edge, FindFlightParams, Graph, Node, Route } from "./types";
+import { Dictionary } from "../util";
+import { Edge, FindFlightParams, Graph, Node, Route } from "./types";
 
 export const setUpFlightsGraphAsync = async (flights: Flight[]) => {
     const nodes: Graph<Edge> = {};

@@ -1,3 +1,6 @@
+export * from './queue';
+export * from './types';
+
 export const retry = (fn: () => Promise<any>, times: number): Promise<any> => fn()
 .then(res => {
     console.log("res", res)
