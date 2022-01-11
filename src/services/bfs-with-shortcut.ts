@@ -1,11 +1,11 @@
 import { Dictionary } from "../util";
 import { Queue } from "../util/queue";
 import { Edge, FindFlightParams, Graph, Route } from "./types";
-import { addRoute, edgeHasBeenVisited, flightIsAfter, getKeyForEdge, getRouteKey, removeRoute } from "./shared";
+import { addRoute, edgeHasBeenVisited, flightIsAfterFaster, getKeyForEdgeFaster, getRouteKeyFaster, removeRoute } from "./shared";
 
-export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+export const bfsWithShortcut = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
     console.log(Object.keys(graph).length);
-    const startKey = `${src}-${startTime}`;
+    const startKey = src + '-' + startTime;
     const routes: Dictionary<Route> = {
         [startKey]: { 
             price: 0, 
@@ -45,18 +45,19 @@ export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams
         //stop searching if you reached destination and keep it in routes
         if(curr.name === dest) continue;
 
-        for (const edge of curr.edges) {
+        for (let i = curr.edges.length - 1; i >= 0; i--) {
+            const edge = curr.edges[i];
             const { stt, endt, dest} = edge;
+    
+            if (!flightIsAfterFaster(prevEnd, stt)) break;
 
-            if (!flightIsAfter(prevEnd, stt) ||
-                edgeHasBeenVisited(parentKey, edge)
-            ) continue;
+            if (edgeHasBeenVisited(parentKey, edge)) continue;
             
             queue.enqueue({
                 prevEnd: endt,
                 graphNode: dest,
-                parentKey: getKeyForEdge(parentKey, edge),
-                parentRouteKey: getRouteKey(parentRouteKey, edge),
+                parentKey: getKeyForEdgeFaster(parentKey, edge),
+                parentRouteKey: getRouteKeyFaster(parentRouteKey, edge),
             });
             addRoute(parentRouteKey, routes, edge);
         }

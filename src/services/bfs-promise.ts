@@ -73,7 +73,7 @@ export const bfsAsync = ({ src, dest, startTime, endTime }: FindFlightParams) =>
 
 
 export const bfsMultipleQueuesAsync = ({ src, dest, startTime, endTime }: FindFlightParams) => async (graph: Graph<Edge>) => {
-    const startKey = `${src}-${startTime}`;
+    const startKey = `${src}-${startTime.getTime()}`;
     const queue = [src];
     const parentKeys = [src];
     const routeKeys = [startKey];
@@ -146,6 +146,6 @@ const tooManyStops = async (parentKey: string) => parentKey.split('.').length > 
 const getKeyForEdge = async (parentKey: string, e: Edge) => `${parentKey}-${e.dest}`;
 const removeRoute = async (key: string, routes: Dictionary<Route>) => delete routes[key];
 const edgeHasBeenVisited = async (parentKey: string, e: Edge) => parentKey.includes(e.dest);
-const getRouteKey = async (parentRouteKey: string, e: Edge) => `${parentRouteKey}.${e.dest}-${e.stt}`;
+const getRouteKey = async (parentRouteKey: string, e: Edge) => `${parentRouteKey}.${e.dest}-${e.stt.getTime()}`;
 const addEdge = async (node: Node<Edge>, flight: Flight) => node.edges.push(await getEdgeFromFlight(flight));
 const flightIsAfter = async (firstEnd: Date, secondStart: Date) => secondStart > new Date(firstEnd.getTime() + 900000);

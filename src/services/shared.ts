@@ -21,7 +21,10 @@ export const addRoute = (parentKey: string, routes: Dictionary<Route>, e: Edge) 
 
 export const getKeyForEdge = (parentKey: string, e: Edge) => `${parentKey}-${e.dest}`;
 export const removeRoute = (key: string, routes: Dictionary<Route>) => delete routes[key];
+export const getKeyForEdgeFaster = (parentKey: string, e: Edge) => parentKey + '-' + e.dest;
 export const edgeHasBeenVisited = (parentKey: string, e: Edge) => parentKey.includes(e.dest);
-export const getRouteKey = (parentRouteKey: string, e: Edge) => `${parentRouteKey}.${e.dest}-${e.stt}`;
 export const addEdge = (node: Node<Edge>, flight: Flight) => node.edges.push(getEdgeFromFlight(flight));
+export const getRouteKey = (parentRouteKey: string, e: Edge) => `${parentRouteKey}.${e.dest}-${e.stt.getTime()}`;
 export const flightIsAfter = (firstEnd: Date, secondStart: Date) => secondStart > new Date(firstEnd.getTime() + 15*60000);
+export const flightIsAfterFaster = (firstEnd: Date, secondStart: Date) => secondStart.getTime() > (firstEnd.getTime() + 15*60000);
+export const getRouteKeyFaster = (parentRouteKey: string, e: Edge) => parentRouteKey + '.' + e.dest + '-' + e.stt.getTime();

@@ -1,13 +1,12 @@
 import { Dictionary } from "../util";
 import { Queue } from "../util/queue";
 import { Edge, FindFlightParams, Graph, Route } from "./types";
-import { addRoute, edgeHasBeenVisited, flightIsAfter, getKeyForEdge, getRouteKey, removeRoute } from "./shared";
+import { edgeHasBeenVisited, flightIsAfter, getKeyForEdge } from "./shared";
 
-export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+export const bfsNoString = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
     console.log(Object.keys(graph).length);
-    const startKey = `${src}-${startTime}`;
     const routes: Dictionary<Route> = {
-        [startKey]: { 
+        [1]: { 
             price: 0, 
             endt: endTime, 
             src, 
@@ -21,14 +20,14 @@ export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams
         prevEnd: Date,
         graphNode: string,
         parentKey: string,
-        parentRouteKey: string
+        parentRouteKey: number
     }>();
 
     queue.enqueue({
         graphNode: src,
         parentKey: src,
         prevEnd: startTime,
-        parentRouteKey: startKey
+        parentRouteKey: 1
     });
     
     while(queue.length > 0) {
@@ -36,8 +35,10 @@ export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams
         const { graphNode, parentRouteKey, parentKey, prevEnd } = queue.dequeue()!;
         const curr = graph[graphNode];
 
+        console.log('key: ', parentRouteKey);
         // no curr means no flight in time frame -> dead end
         if (!curr) {
+            console.log('removing: ', parentRouteKey)
             removeRoute(parentRouteKey, routes);
             continue;
         }
@@ -45,24 +46,40 @@ export const bfsWithQueue = ({ src, dest, startTime, endTime }: FindFlightParams
         //stop searching if you reached destination and keep it in routes
         if(curr.name === dest) continue;
 
-        for (const edge of curr.edges) {
+        for (let i = curr.edges.length - 1; i >= 0; i--) {
+            const edge = curr.edges[i];
             const { stt, endt, dest} = edge;
+    
+            if (!flightIsAfter(prevEnd, stt)) break;
 
-            if (!flightIsAfter(prevEnd, stt) ||
-                edgeHasBeenVisited(parentKey, edge)
-            ) continue;
+            if (edgeHasBeenVisited(parentKey, edge)) continue;
             
+            const key = parentRouteKey + i + 1;
+
             queue.enqueue({
                 prevEnd: endt,
                 graphNode: dest,
                 parentKey: getKeyForEdge(parentKey, edge),
-                parentRouteKey: getRouteKey(parentRouteKey, edge),
+                parentRouteKey: key,
             });
-            addRoute(parentRouteKey, routes, edge);
+            addRoute(parentRouteKey, key, routes, edge);
         }
 
+        console.log('removing: ', parentRouteKey)
         removeRoute(parentRouteKey, routes);
     }
 
     return Object.values(routes);
 }
+
+const addRoute = (parentKey: number, key: number, routes: Dictionary<Route>, e: Edge) => {
+    console.log('adding route', key)
+    const prevRoute = routes[parentKey];
+    routes[key] = {
+        ...prevRoute,
+        endt: e.endt,
+        price: prevRoute.price + e.price,
+        stops: [...prevRoute.stops, e.dest],
+    }
+}
+const removeRoute = (key: number, routes: Dictionary<Route>) => delete routes[key];

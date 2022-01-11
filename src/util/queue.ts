@@ -1,25 +1,32 @@
 import { Dictionary } from "./types";
 
 export class Queue<T> {
-    private counter: number;
+    private readCounter: number;
     private queue: Dictionary<T>;
+    private insertCounter: number;
 
     constructor() {
-        this.counter = 0;
+        this.insertCounter = 0;
+        this.readCounter = 0;
         this.queue = {};
     }
 
     enqueue = (obj: T) => {
-        this.counter += 1;
-        this.queue[this.counter] = obj;
+        this.insertCounter += 1;
+        this.queue[this.insertCounter] = obj;
     };
 
-    dequeue = (): T => {
-        this.counter -= 1;
-        return this.queue[this.counter + 1];
+    dequeue = (): T | undefined => {
+        if (this.isQueueEmpty()) return undefined;
+        this.readCounter += 1;
+        const res = this.queue[this.readCounter];
+        delete this.queue[this.readCounter];
+        return res;
     };
 
     get length() {
-        return this.counter;
-    }
+        return this.insertCounter - this.readCounter;
+    };
+
+    private isQueueEmpty = () => this.length <= 0;
 }
