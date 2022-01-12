@@ -4,8 +4,9 @@ import { Edge, FindFlightParams, Graph, Route } from "./types";
 import { addRoute, edgeHasBeenVisited, flightIsAfterFaster, getKeyForEdgeFaster, getRouteKeyFaster, removeRoute } from "./shared";
 
 export const bfsWithShortcut = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+    const initialMemory = process.memoryUsage().heapTotal;
     console.log(Object.keys(graph).length);
-    const startKey = src + '-' + startTime;
+    const startKey = src + '-' + startTime.getTime();
     const routes: Dictionary<Route> = {
         [startKey]: { 
             price: 0, 
@@ -64,6 +65,7 @@ export const bfsWithShortcut = ({ src, dest, startTime, endTime }: FindFlightPar
 
         removeRoute(parentRouteKey, routes);
     }
+    console.log(`Used memory: ${((process.memoryUsage().heapTotal - initialMemory))}`);
 
     return Object.values(routes);
 }

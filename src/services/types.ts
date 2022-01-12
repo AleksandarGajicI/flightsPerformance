@@ -1,6 +1,4 @@
-export type Dictionary<T> = {
-    [k in string]: T;
-}
+import { Dictionary } from "../util";
 
 export interface Node<T> {
     name: string;
@@ -29,5 +27,18 @@ export type Route = {
     dest: string;
     stt: Date;
     endt: Date;
-    stops: string[]
+    stops: string[];
 };
+
+export type RouteDetails = {
+    src: string;
+    dest: string;
+}
+
+export type RouteFlyweight = {
+    stt: Date;
+    endt: Date;
+    stops: string;
+    price: number;
+    details: RouteDetails;
+}

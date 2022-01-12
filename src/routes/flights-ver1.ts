@@ -3,7 +3,7 @@ import { FlightsRequest } from "./types";
 import { getWrapperClient } from "../db";
 import { Middleware } from "../middleware";
 import { Response, Router } from "express";
-import { bfs, bfsMultipleQueues, bfsNoString, bfsWithQueue, bfsWithReusable, bfsWithShortcut, setUpFlightsGraph } from "../services";
+import { bfs, bfsMultipleQueues, bfsWithFlyweight, bfsWithQueue, bfsWithShortcut, setUpFlightsGraph } from "../services";
 
 export const loadRoutesVer1 = (router: Router, middlewares: Middleware[]) => {
     router.get('/V1/flights', ...middlewares, async (req: FlightsRequest, res: Response) => {
@@ -90,7 +90,7 @@ export const loadRoutesVer1 = (router: Router, middlewares: Middleware[]) => {
         });
     });
 
-    router.get('/V1/flights/bfs/reusable', ...middlewares, async (req: FlightsRequest, res: Response) => {
+    router.get('/V1/flights/bfs/flyweight', ...middlewares, async (req: FlightsRequest, res: Response) => {
         const client = await getWrapperClient();
         const { end, start, src, dest } = req.fligthParams;
         const data = await client.query<Flight>('select * from flight where stt > $1 and endt < $2 order by stt asc', [start, end]);
@@ -103,7 +103,7 @@ export const loadRoutesVer1 = (router: Router, middlewares: Middleware[]) => {
             startTime: new Date(start)
         };
         res.status(200).json({
-            data: bfsWithReusable(bfsParams)(setUpFlightsGraph(data.rows)),
+            data: bfsWithFlyweight(bfsParams)(setUpFlightsGraph(data.rows)),
             count: data.rowCount
         });
     });

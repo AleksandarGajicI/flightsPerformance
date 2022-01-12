@@ -1,26 +1,20 @@
 import { Dictionary } from "../util";
 import { Queue } from "../util/queue";
-import { Edge, FindFlightParams, Graph, Route } from "./types";
-import { edgeHasBeenVisited, flightIsAfterFaster, getKeyForEdgeFaster, getRouteKey, getRouteKeyFaster, removeRoute } from "./shared";
+import { Edge, FindFlightParams, Graph, Route, RouteDetails, RouteFlyweight } from "./types";
+import { edgeHasBeenVisited, flightIsAfterFaster, getKeyForEdgeFaster, getRouteKey, getRouteKeyFaster } from "./shared";
 
-export const bfsWithReusable = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+export const bfsWithFlyweight = ({ src, dest, startTime, endTime }: FindFlightParams) => (graph: Graph<Edge>) => {
+    const initialMemory = process.memoryUsage().heapTotal;
     console.log(Object.keys(graph).length);
     const startKey = src + '-' + startTime;
-    const startRoute: Route = { 
-        price: 0, 
-        endt: endTime, 
-        src, 
-        stt: startTime, 
-        dest, 
-        stops: []
-    };
-
-    const numOfReusableRoutes = 1000;
-    let reusableRouteIndex = 0;
-    const reusableRoutes = new Array<Route>(numOfReusableRoutes).fill({...startRoute, stops: []});
-
-    const routes: Dictionary<Route> = {
-        [startKey]: startRoute
+    const routes: Dictionary<RouteFlyweight> = {
+        [startKey]: { 
+            price: 0, 
+            stops: '',
+            endt: endTime,
+            stt: startTime, 
+            details: { src, dest },
+        }
     };
     
     const queue = new Queue<{
@@ -65,35 +59,41 @@ export const bfsWithReusable = ({ src, dest, startTime, endTime }: FindFlightPar
                 parentKey: getKeyForEdgeFaster(parentKey, edge),
                 parentRouteKey: getRouteKeyFaster(parentRouteKey, edge),
             });
-            if (areThereRoutesToReuse(reusableRouteIndex, numOfReusableRoutes)) {
-                addRoute(parentRouteKey, routes, edge, reusableRoutes[reusableRouteIndex]);
-                reusableRouteIndex += 1;
-            }
             addRoute(parentRouteKey, routes, edge);
         }
 
         removeRoute(parentRouteKey, routes);
-        if (reusableRouteIndex !== 0) reusableRouteIndex -= 1;
     }
+    console.log(`Used memory: ${((process.memoryUsage().heapTotal - initialMemory))}`);
 
     return Object.values(routes);
 }
 
-const addRoute = (parentKey: string, routes: Dictionary<Route>, e: Edge, reusableRoute?: Route) => {
+const addRoute = (parentKey: string, routes: Dictionary<RouteFlyweight>, e: Edge) => {
     const prevRoute = routes[parentKey];
-    if (reusableRoute) {
-        reusableRoute.endt = e.endt;
-        reusableRoute.price = prevRoute.price + e.price;
-        reusableRoute.stops = [...prevRoute.stops, e.dest]
-        routes[getRouteKey(parentKey, e)] = reusableRoute;
-        return;
-    }
     routes[getRouteKey(parentKey, e)] = {
-        ...prevRoute,
         endt: e.endt,
+        details: prevRoute.details,
         price: prevRoute.price + e.price,
-        stops: [...prevRoute.stops, e.dest],
+        stops: prevRoute.stops + '-' + e.dest,
+        stt: prevRoute.stops.length === 0 ? e.stt : prevRoute.stt,
     }
 }
 
-const areThereRoutesToReuse = (currRoute: number, numOfReusableRoutes: number) => currRoute < numOfReusableRoutes;
+const removeRoute = (key: string, routes: Dictionary<RouteFlyweight>) => delete routes[key];
+
+const routeDetailsFactory = () => {
+    const details: Dictionary<RouteDetails> = {};
+
+    return {
+        get: (key: string): RouteDetails => {
+            if (details[key]) return details[key];
+
+            const [src, dest] = key.split('-');
+            const newRouteDetails = { src, dest };
+            details[key] = newRouteDetails;
+
+            return newRouteDetails;
+        }
+    }
+}
