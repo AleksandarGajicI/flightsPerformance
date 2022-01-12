@@ -82,7 +82,7 @@ const addRoute = (parentKey: string, routes: Dictionary<RouteFlyweight>, e: Edge
 
 const removeRoute = (key: string, routes: Dictionary<RouteFlyweight>) => delete routes[key];
 
-const routeDetailsFactory = () => {
+const routeStopsFactory = () => {
     const details: Dictionary<RouteDetails> = {};
 
     return {
